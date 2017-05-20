@@ -7,12 +7,19 @@ import com.github.seratch.jslack.api.methods.response.channels.ChannelsListRespo
 import com.github.seratch.jslack.api.methods.response.chat.ChatPostMessageResponse;
 import com.github.seratch.jslack.api.model.Channel;
 import com.twilio.sdk.TwilioRestClient;
+import com.twilio.sdk.resource.factory.MessageFactory;
 import com.twilio.sdk.resource.instance.Message;
 import com.twilio.sdk.resource.list.MessageList;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -26,6 +33,8 @@ public class HomeController {
     public static final String AUTH_TOKEN = "ded2baf31a81dd4d80ef97e07051b54f";
     public static final String TWILIO_NUMBER = "+14697897673";
     public static final String USER_NUMBER = "+14694380988";
+    public static final String SLACK_WEBHOOK_SECRET = "HTWkwStbpYWKq1dh3JUZiQk2";
+
 
 
 
@@ -81,7 +90,7 @@ public class HomeController {
                                 .channel(general.getId())
                                 .text(body).username("twiliobot").iconEmoji(":taxi:")
                                 .build());
-               
+
 
             }
 
@@ -90,6 +99,40 @@ public class HomeController {
         catch (Exception e) {
             System.out.println(e);
         }
+    }
+
+    //From Slack to User
+    @RequestMapping(value = "/slack",method = RequestMethod.POST)
+    public void receiveSMS(HttpServletRequest req){
+
+        try {
+
+            String body = req.getParameter("text").toString();
+            String token = req.getParameter("token").toString();
+            String username = req.getParameter("user_name").toString();
+
+
+            if(token.equals(SLACK_WEBHOOK_SECRET)) {
+
+                TwilioRestClient client = new TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN);
+
+                // Build a filter for the MessageList
+                List<NameValuePair> params = new ArrayList<NameValuePair>();
+                params.add(new BasicNameValuePair("Body", username + ": " + body));
+                params.add(new BasicNameValuePair("To", USER_NUMBER)); //Add real number here
+                params.add(new BasicNameValuePair("From", TWILIO_NUMBER));
+
+                MessageFactory messageFactory = client.getAccount().getMessageFactory();
+                Message message = messageFactory.create(params);
+                System.out.println(message.getSid());
+            }
+
+        }
+        catch (Exception e) {
+            //System.out.println(e.getErrorMessage());
+            e.printStackTrace();
+        }
+
     }
 
 }
